@@ -1,0 +1,74 @@
+// Prisma schema for Idea Bucket AI
+// Database: SQLite (can be swapped to Supabase later)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model IdeaCard {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // User input
+  description String
+  imageUrl    String?
+
+  // AI-generated metadata
+  title       String?
+  summary     String?
+  tags        String?  // JSON array stored as string
+
+  // Processing status
+  processed   Boolean  @default(false)
+
+  // Relations
+  clusters    ConceptCluster[] @relation("IdeaToCluster")
+
+  @@index([createdAt])
+}
+
+model ConceptCluster {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // AI-generated cluster metadata
+  name        String
+  summary     String
+
+  // User decision
+  status      String   @default("pending") // pending, accepted, rejected
+
+  // Relations
+  ideas       IdeaCard[] @relation("IdeaToCluster")
+  specKitDraft SpecKitDraft?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SpecKitDraft {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Reference to cluster
+  clusterId   String   @unique
+  cluster     ConceptCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+
+  // JSON structure fields
+  problem            String
+  targetUser         String
+  solution           String
+  coreFeatures       String  // JSON array stored as string
+  differentiation    String
+  sourceIdeaIds      String  // JSON array stored as string
+
+  @@index([createdAt])
+}
